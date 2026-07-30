@@ -2,13 +2,14 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
-use common::universal_io::MmapFs;
+use common::universal_io::{MmapFile, MmapFs};
 
 use self::telemetry::HNSWSearchesTelemetry;
 use crate::common::BYTES_IN_KB;
 use crate::common::operation_error::OperationResult;
 use crate::id_tracker::IdTrackerEnum;
 use crate::index::hnsw_index::config::HnswGraphConfig;
+use crate::index::hnsw_index::graph::HnswGraph;
 use crate::index::hnsw_index::graph_layers::GraphLayers;
 use crate::index::hnsw_index::graph_links::GraphLinksResidency;
 use crate::index::struct_payload_index::StructPayloadIndex;
@@ -47,7 +48,7 @@ pub struct HNSWIndex {
     payload_index: Arc<AtomicRefCell<StructPayloadIndex>>,
     config: HnswGraphConfig,
     path: PathBuf,
-    graph: GraphLayers,
+    graph: HnswGraph<MmapFile>,
     searches_telemetry: HNSWSearchesTelemetry,
     is_on_disk: bool,
 }
@@ -116,7 +117,7 @@ impl HNSWIndex {
             Memory::Pinned => GraphLinksResidency::Pinned,
         };
 
-        let graph = GraphLayers::load(path, residency, do_convert)?;
+        let graph = HnswGraph::InRam(GraphLayers::load(path, residency, do_convert)?);
 
         Ok(HNSWIndex {
             id_tracker,
@@ -146,7 +147,7 @@ impl HNSWIndex {
 
     #[cfg(test)]
     pub(super) fn graph(&self) -> &GraphLayers {
-        &self.graph
+        self.graph.graph_layers()
     }
 
     pub fn get_quantized_vectors(&self) -> Arc<AtomicRefCell<Option<QuantizedVectors>>> {
