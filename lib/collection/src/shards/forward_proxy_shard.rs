@@ -5,6 +5,7 @@ use std::time::{Duration, Instant};
 use ahash::HashSet;
 use async_trait::async_trait;
 use common::counter::hardware_accumulator::HwMeasurementAcc;
+use common::flags::feature_flags;
 use common::tar_ext;
 use common::types::{DeferredBehavior, TelemetryDetail};
 use parking_lot::Mutex as ParkingMutex;
@@ -211,13 +212,16 @@ impl ForwardProxyShard {
         // When any named vector uses a TurboQuant (`Turbo4`) storage datatype,
         // ship storage-native (raw) vector bytes instead of decoded floats.
         // This avoids a lossy TQ decode -> encode round-trip on the receiving
-        // node, which would drift the encoding and degrade recall.
-        let transfer_raw = self
-            .wrapped_shard
-            .collection_config
-            .read()
-            .await
-            .has_turbo_vector_storage();
+        // node, which would drift the encoding and degrade recall. The feature
+        // flag extends that to every collection, where it is a plain saving:
+        // neither side has to decode and re-encode the point.
+        let transfer_raw = feature_flags().transfer_raw_points
+            || self
+                .wrapped_shard
+                .collection_config
+                .read()
+                .await
+                .has_turbo_vector_storage();
 
         let read_start = Instant::now();
         let (point_operation, next_page_offset, count) = if transfer_raw {

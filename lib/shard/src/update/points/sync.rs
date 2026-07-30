@@ -183,7 +183,8 @@ impl PointToSync for PointStructRawPersisted {
             ids,
             &WithPayload::from(true),
             &WithVector::Bool(true),
-            // Compared against an incoming point, whose payload is parsed.
+            // Compared against an incoming point, whose payload always arrives
+            // parsed (raw payload blobs are decoded at the gRPC boundary).
             RawPayloadFormat::Parsed,
             hw_counter,
             is_stopped,

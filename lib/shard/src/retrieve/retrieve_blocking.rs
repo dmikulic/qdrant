@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use ahash::AHashMap;
 use common::counter::hardware_accumulator::HwMeasurementAcc;
+use common::flags::feature_flags;
 use common::types::DeferredBehavior;
 use parking_lot::RwLock;
 use segment::common::operation_error::{OperationError, OperationResult};
@@ -143,13 +144,20 @@ pub fn retrieve_raw_blocking(
             .collect()
     };
 
+    // Sending the payload as its stored blob is feature-flagged; without the
+    // flag the payload is read parsed, exactly like the non-raw path.
+    let payload_format = if feature_flags().transfer_raw_payloads {
+        RawPayloadFormat::Bytes
+    } else {
+        RawPayloadFormat::Parsed
+    };
+
     retrieve_raw_over(
         segments,
         points,
         with_payload,
         with_vector,
-        // Reading the payload as its stored blob is opt-in, and no caller opts in yet.
-        RawPayloadFormat::Parsed,
+        payload_format,
         is_stopped,
         hw_measurement_acc,
         deferred_behavior,
