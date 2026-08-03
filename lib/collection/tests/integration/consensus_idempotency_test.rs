@@ -11,7 +11,7 @@
 
 use async_trait::async_trait;
 use collection::operations::cluster_ops::ReshardingDirection;
-use collection::operations::types::CollectionResult;
+use collection::operations::types::{CollectionError, CollectionResult};
 use collection::shards::CollectionId;
 use collection::shards::replica_set::replica_set_state::ReplicaState;
 use collection::shards::resharding::ReshardKey;
@@ -166,8 +166,9 @@ async fn test_set_resharding_up_replica_dead_drops_shard_and_clears_state() {
     let replay = collection
         .set_shard_replica_state(2, 0, ReplicaState::Dead, Some(ReplicaState::Resharding))
         .await;
+
     assert!(
-        replay.is_err(),
+        matches!(replay, Err(CollectionError::NotFound { .. })),
         "replay after full completion is a benign dismissal (shard already gone)",
     );
     assert!(

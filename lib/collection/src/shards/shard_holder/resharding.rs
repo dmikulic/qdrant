@@ -485,12 +485,13 @@ impl ShardHolder {
         &mut self,
         resharding_key: &ReshardKey,
     ) -> CollectionResult<()> {
-        let ReshardKey {
+        let &ReshardKey {
+            uuid: _,
             direction,
+            peer_id: _,
             shard_id,
             ref shard_key,
-            ..
-        } = *resharding_key;
+        } = resharding_key;
 
         if direction != ReshardingDirection::Up {
             return Ok(());
